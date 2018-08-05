@@ -3,6 +3,8 @@
 import sys
 import os
 
+from multiprocessing import Process, Queue
+
 def handleArgv(argvs):
     argFileDict = {}
     if len(argvs) != 7:
@@ -145,6 +147,35 @@ class Salary:
     def getStr(self):
         return self._sstr
 
+queue1 = Queue()
+queue2 = Queue()
+
+def readUserData(q,userfile):
+    with open(userfile, 'r') as file:
+        datalist = file.readlines()
+        q.put('\t'.join(datalist))
+            
+
+def calcData(q1,q2,jishu,tax):
+    strlist = q1.get()
+    datalist = strlist.split('\t')
+    reslist = []
+    for data in datalist:
+        #print('process2: ' + data)
+        s = Salary(data)
+        s.calcSalary(jishu,tax)
+        reslist.append(s.getStr())
+    q2.put('\t'.join(reslist))
+
+def writefile(q,outfile):
+    with open(outfile, 'a') as file:
+        #while not q.empty():
+        datalist = q.get()
+        #print('process3: ' + datalist)
+        strlist = datalist.split('\t')
+        for ostr in strlist:
+            #ostr += '\n'
+            file.write(ostr)
 
 if __name__ == '__main__':
     argfile = handleArgv(sys.argv)
@@ -154,11 +185,14 @@ if __name__ == '__main__':
         #cfg.showCfg()
         tax = cfg.getTaxRate()
         jishu = cfg.getJiShuRange()
-        with open(argfile['out'],'a') as file:
-            with open(argfile['user'],'r') as ufile:
-                for data in ufile:
-                    s = Salary(data)
-                    s.calcSalary(jishu,tax)
-                    #print(s.getStr())
-                    file.write(s.getStr())
-    
+        p1 = Process(target=readUserData,args=(queue1,argfile['user']))
+        p2 = Process(target=calcData,args=(queue1, queue2, jishu, tax))
+        p3 = Process(target=writefile, args=(queue2,argfile['out']))
+
+        p1.start()
+        p2.start()
+        p3.start()
+
+        p3.join()
+        p2.join()
+        p1.join()
