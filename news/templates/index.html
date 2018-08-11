@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block header %}
+    <h1>FILE LIST</h1>
+{% endblock %}
+
+{% block titles %}
+    {% for filetitle in filelist %}
+        <span>{{ filetitle }}</span>
+        <br>
+    {% endfor %}
+{% endblock %}
