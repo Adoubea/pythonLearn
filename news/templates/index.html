@@ -4,8 +4,8 @@
 {% endblock %}
 
 {% block titles %}
-    {% for filetitle in filelist %}
-        <span>{{ filetitle }}</span>
+    {% for file in filelist %}
+    <span><a href='files/{{ file.id }}'>{{ file.title }}</a></span>
         <br>
     {% endfor %}
 {% endblock %}
