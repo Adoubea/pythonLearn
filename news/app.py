@@ -4,6 +4,7 @@
 from flask import Flask,render_template,abort
 import json,os
 from flask_sqlalchemy import SQLAlchemy
+from pymongo import MongoClient
 
 class Jsonfile:
     def __init__(self):
@@ -35,6 +36,8 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@localhost/shiyanlou'
 
 db = SQLAlchemy(app)
+client = MongoClient('127.0.0.1', 27017)
+mongodb = client.shiyanlou
 
 class File(db.Model):
     __tablename__ = 'file'
@@ -53,6 +56,23 @@ class File(db.Model):
 
     def __repr__(self):
         return '<File %s>' % self.title
+
+    def add_tag(self,tag_name):
+        rec = mongodb.filetags.find_one({'title':self.title})
+        if rec is None:
+            mongodb.filetags.insert_one({'title':self.title,'tags':[tag_name]})
+        else:
+            if rec.get('tags').count(tag_name) == 0:
+                mongodb.filetags.update_one({'title':self.title},{'$set':{'tags':rec.get('tags').append(tag_name)}})
+
+    def remove_tag(self,tag_name):
+        rec = mongodb.filetags.find_one({'title':self.title},{'tags':tag_nane})
+        if rec is not None:
+            mongodb.filetags.update_one({'title':self.title},{'$set':{'tags':rec.get('tags').remove(tag_name)}})
+
+    @property
+    def tags(self):
+        return mongodb.filetags.find_one({'title':self.title}).get('tags')
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)

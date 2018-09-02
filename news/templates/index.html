@@ -6,6 +6,7 @@
 {% block titles %}
     {% for file in filelist %}
     <span><a href='files/{{ file.id }}'>{{ file.title }}</a></span>
+    <span>{{ file.tags }}</span>
         <br>
     {% endfor %}
 {% endblock %}
