@@ -42,7 +42,7 @@ mongodb = client.shiyanlou
 class File(db.Model):
     __tablename__ = 'file'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(80))
+    title = db.Column(db.String(80), unique=True)
     created_time = db.Column(db.DateTime)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     content = db.Column(db.Text)
@@ -58,45 +58,77 @@ class File(db.Model):
         return '<File %s>' % self.title
 
     def add_tag(self,tag_name):
-        rec = mongodb.filetags.find_one({'title':self.title})
-        if rec is None:
-            mongodb.filetags.insert_one({'title':self.title,'tags':[tag_name]})
+        file_item = mongodb.files.find_one({'file_id':self.id})
+        if file_item:
+            tags = file_item['tags']
+            if tag_name not in tags:
+                tags.append(tag_name)
+            mongodb.files.update_one({'file_id':self.id},{'$set':{'tags':tags}})
         else:
-            if rec.get('tags').count(tag_name) == 0:
-                mongodb.filetags.update_one({'title':self.title},{'$set':{'tags':rec.get('tags').append(tag_name)}})
+            tags = [tag_name]
+            mongodb.files.insert_one({'file_id':self.id,'tags':tags})
+        return tags
 
     def remove_tag(self,tag_name):
-        rec = mongodb.filetags.find_one({'title':self.title},{'tags':tag_nane})
-        if rec is not None:
-            mongodb.filetags.update_one({'title':self.title},{'$set':{'tags':rec.get('tags').remove(tag_name)}})
+        file_item = mongodb.files.find_one({'file_id':self.id})
+        if file_item:
+            tags = file_item['tags']
+            try:
+                tags.remove(tag_name)
+                new_tags = tags
+            except ValueError:
+                return tags
+            mongodb.filetags.update_one({'file_id':self.id},{'$set':{'tags':new_tags}})
+            return new_tags
+        return []
 
     @property
     def tags(self):
-        return mongodb.filetags.find_one({'title':self.title}).get('tags')
+        file_item = mongodb.filetags.find_one({'file_id':self.id})
+        if file_item:
+            return file_item['tags']
+        else:
+            return []
 
 class Category(db.Model):
+    __tablename__ = 'categories'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80))
+    files = db.relationship('File')
 
     def __init__(self, name):
         self.name = name
 
     def __repr__(self):
         return '<Category %s>' % self.name
+        
+    def insert_datas():
+        java = Category('Java')
+        python = Category('Python')
+        file1 = File('Hello Java', datetime.utcnow(),
+                 java, 'File Content - Java is cool!')
+        file2 = File('Hello Python', datetime.utcnow(),
+                 python, 'File Content - Python is cool!')
+        db.session.add(java)
+        db.session.add(python)
+        db.session.add(file1)
+        db.session.add(file2)
+        db.session.commit()
+        file1.add_tag('tech')
+        file1.add_tag('java')
+        file1.add_tag('linux')
+        file2.add_tag('tech')
+        file2.add_tag('python')
 
 @app.route('/')
 def index():
     #jfile = Jsonfile()
-    return render_template('index.html',filelist=File.query.all())
+    return render_template('index.html',files=File.query.all())
 
-@app.route('/files/<file_id>')
+@app.route('/files/<int:file_id>')
 def file(file_id):
-     files = File.query.filter(File.id==file_id).first()
-     if files is None:
-         abort(404)
-     else:
-         for files in File.query.filter(File.id==file_id).all():
-             return render_template('file.html',filedict=files) 
+     file_item = File.query.get_or_404(file_id)
+     return render_template('file.html',file_item=file_item) 
 
 '''
 @app.route('/files/<filename>')
