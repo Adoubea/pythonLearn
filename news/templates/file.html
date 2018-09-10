@@ -4,11 +4,11 @@
 {% endblock %}
 
 {% block content %}
-    <p>{{ filedict.content }}</p>
+    <p>{{ file_item['title'] }}</p>
     <br>
-    <p>{{ filedict.created_time }}</p>
+    <p>{{ file_item['created_time'] }}</p>
     <br>
-    <p>{{ filedict.category.name }}</p>
+    <p>{{ file_item['content'] }}</p>
     <br>
 {% endblock %}
 
