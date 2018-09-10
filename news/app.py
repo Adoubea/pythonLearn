@@ -44,7 +44,7 @@ class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(80), unique=True)
     created_time = db.Column(db.DateTime)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
     content = db.Column(db.Text)
     category = db.relationship('Category',backref=db.backref('File'))
 
@@ -78,13 +78,13 @@ class File(db.Model):
                 new_tags = tags
             except ValueError:
                 return tags
-            mongodb.filetags.update_one({'file_id':self.id},{'$set':{'tags':new_tags}})
+            mongodb.files.update_one({'file_id':self.id},{'$set':{'tags':new_tags}})
             return new_tags
         return []
 
     @property
     def tags(self):
-        file_item = mongodb.filetags.find_one({'file_id':self.id})
+        file_item = mongodb.files.find_one({'file_id':self.id})
         if file_item:
             return file_item['tags']
         else:
